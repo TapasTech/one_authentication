@@ -18,13 +18,15 @@ module OneAuthentication
   end
 
   class Service
-    class Error < StandardError; end
+    class NotAuthorized < StandardError; end
 
     AUTHENTICATION_KEY = 'Authorization'
 
     class << self
       def get_user(token)
         resp = request(auth_url('profile'), token)
+
+        raise NotAuthorized if resp.code == '500'
 
         data = JSON.parse(resp.body)['data'].slice('name', 'position', 'avatar', 'mobile', 'email')
         OneAuthentication::User.new(data)
@@ -38,8 +40,10 @@ module OneAuthentication
 
       def exchange_token(ticket, session_id)
         uri = URI(exchange_token_url(ticket, session_id))
-
         resp = Net::HTTP.get(uri)
+
+        raise NotAuthorized if JSON.parse(resp)['message'] == 'invalid session'
+
         JSON.parse(resp)['data']
       end
 
