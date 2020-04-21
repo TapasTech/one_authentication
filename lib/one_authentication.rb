@@ -28,7 +28,20 @@ module OneAuthentication
 
         raise NotAuthorized if resp.code == '500'
 
-        data = JSON.parse(resp.body)['data'].slice('name', 'position', 'avatar', 'mobile', 'email')
+        data = JSON.parse(resp.body)['data'].slice('name', 'position', 'avatar', 'mobile', 'email', 'userid')
+        if user_table_name
+          klass = Kernel.const_get(user_table_name.capitalize)
+          column_names = if klass.respond_to?(:column_names)
+                           klass.column_names
+                         elsif klass.respond_to?(:fields)
+                           klass.fields.keys
+                         else
+                           []
+                         end
+
+          return klass.find_by(ding_talk_id: data['userid']) if column_names.include?('ding_talk_id')
+        end
+
         OneAuthentication::User.new(data)
       end
 
@@ -53,7 +66,11 @@ module OneAuthentication
 
       private
       def host
-        OneAuthentication.configuration.authentication_host
+        OneAuthentication.configuration.authentication_center_host
+      end
+
+      def user_table_name
+        OneAuthentication.configuration.user_table_name
       end
 
       def api_url(path)

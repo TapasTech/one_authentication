@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    one_authentication (0.1.0)
+    one_authentication (0.1.2)
 
 GEM
   remote: https://rubygems.org/
