@@ -4,6 +4,7 @@ require 'one_authentication/user'
 require 'one_authentication/version'
 require 'one_authentication/configuration'
 require 'one_authentication/rack_app_adapter'
+require 'one_authentication/utils'
 
 module OneAuthentication
   class << self
@@ -19,6 +20,8 @@ module OneAuthentication
   end
 
   module Plugin
+    include Utils
+
     class NotAuthorized < StandardError; end
 
     AUTHENTICATION_KEY = 'Authorization'
@@ -39,12 +42,20 @@ module OneAuthentication
       end
     end
 
+    def authorize(privilege_name)
+      resolve_not_authorized unless @current_user
+
+      owned_privileges = @current_user.privileges.map { |h| h['name'] }
+      resolve_not_authorized if owned_privileges.exclude?(privilege_name)
+    end
+
     def get_user(token)
-      resp = send_request(auth_url('profile'), token)
+      resp = send_request(auth_url('profile', { app_key: app_key }), token)
 
       raise NotAuthorized if resp.code == '500'
 
-      data = JSON.parse(resp.body)['data'].slice('name', 'position', 'avatar', 'mobile', 'email', 'userId')
+      data = JSON.parse(resp.body)['data'].slice('name', 'position', 'avatar', 'mobile', 'email', 'userId', 'privileges')
+      data.transform_keys!{ |key| underscore(key) }
       if user_table_name
         klass = Kernel.const_get(user_table_name.capitalize)
         column_names = if klass.respond_to?(:column_names)
@@ -93,12 +104,19 @@ module OneAuthentication
       OneAuthentication.configuration.app_user_table_name
     end
 
-    def api_url(path)
-      "#{host}/api/#{path}"
+    def app_key
+      OneAuthentication.configuration.app_key
     end
 
-    def auth_url(path)
-      "#{host}/auth/#{path}"
+    def api_url(path,  parameters = {})
+      parameters.transform_keys!{ |key| camelize(key) }
+      query_string = parameters.inject('') { |result, (k, v)| result + "?#{k}=#{v}" } unless parameters.blank?
+      "#{host}/api/#{path}#{query_string}"
+    end
+
+    def auth_url(path, parameters = {})
+      query_string = parameters.inject('') { |result, (k, v)| result + "?#{k}=#{v}" } unless parameters.blank?
+      "#{host}/auth/#{path}#{query_string}"
     end
 
     def exchange_token_url(ticket, session_id)
@@ -139,10 +157,14 @@ module OneAuthentication
     end
 
     def set_token_in_resp(token)
-      if redirect_url
-        response.set_cookie(AUTHENTICATION_KEY, token)
-      else
+      if respond_to?(:response)
+        return response.set_cookie(AUTHENTICATION_KEY, token) if redirect_url
+
         response.set_header(AUTHENTICATION_KEY, token)
+      elsif respond_to?(:header)
+        header(AUTHENTICATION_KEY, token)
+      else
+        raise UnknownRackApp
       end
     end
   end
