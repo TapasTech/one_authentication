@@ -9,5 +9,9 @@ module OneAuthentication
       end
     end
 
+    def id
+      @user_id
+    end
+
   end
 end
