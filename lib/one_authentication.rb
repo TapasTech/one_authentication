@@ -3,7 +3,6 @@ require 'json'
 require 'one_authentication/user'
 require 'one_authentication/version'
 require 'one_authentication/configuration'
-require 'one_authentication/rack_app_adapter'
 require 'one_authentication/utils'
 
 module OneAuthentication
@@ -23,6 +22,7 @@ module OneAuthentication
     include Utils
 
     class NotAuthorized < StandardError; end
+    class UnknownRackApp < StandardError; end
 
     AUTHENTICATION_KEY = 'Authorization'
 
