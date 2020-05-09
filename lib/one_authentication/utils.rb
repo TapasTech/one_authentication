@@ -20,5 +20,27 @@ module OneAuthentication
       string.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }.gsub("/", "::")
     end
 
+    def host
+      OneAuthentication.configuration.authentication_center_host
+    end
+
+    def redirect_url
+      OneAuthentication.configuration.redirect_url
+    end
+
+    def user_table_name
+      OneAuthentication.configuration.app_user_table_name
+    end
+
+    def app_key
+      OneAuthentication.configuration.app_key
+    end
+
+    def generate_url(path, parameters = {})
+      parameters.transform_keys!{ |key| camelize(key) }
+      query_string = '?' + parameters.map { |k, v| "#{k}=#{v}" }.join('&') unless parameters.blank?
+      "#{host}/#{path}#{query_string}"
+    end
+
   end
 end

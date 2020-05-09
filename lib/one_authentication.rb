@@ -50,7 +50,7 @@ module OneAuthentication
     end
 
     def get_user(token)
-      resp = send_request(auth_url('profile', { app_key: app_key }), token)
+      resp = send_request(generate_url('auth/profile', { app_key: app_key }), token)
 
       raise NotAuthorized if resp.code == '500'
 
@@ -73,62 +73,30 @@ module OneAuthentication
     end
 
     def get_all_user_attributes(token)
-      resp = send_request(api_url('users'), token)
+      resp = send_request(generate_url('api/users'), token)
 
       JSON.parse(resp.body)['data']
     end
 
     def logout(token)
-      send_request(auth_url('logout'), token)
+      send_request(generate_url('auth/logout'), token)
     end
 
     private
     def exchange_token(ticket, session_id)
-      uri = URI(exchange_token_url(ticket, session_id))
-      resp = Net::HTTP.get(uri)
+      url = generate_url('auth/token', { st: ticket, session_id: session_id })
+      resp = Net::HTTP.get(URI(url))
 
       return nil if JSON.parse(resp)['message'] == 'invalid session'
 
       JSON.parse(resp)['data']
     end
 
-    def host
-      OneAuthentication.configuration.authentication_center_host
-    end
-
-    def redirect_url
-      OneAuthentication.configuration.redirect_url
-    end
-
-    def user_table_name
-      OneAuthentication.configuration.app_user_table_name
-    end
-
-    def app_key
-      OneAuthentication.configuration.app_key
-    end
-
-    def api_url(path,  parameters = {})
-      parameters.transform_keys!{ |key| camelize(key) }
-      query_string = parameters.inject('') { |result, (k, v)| result + "?#{k}=#{v}" } unless parameters.blank?
-      "#{host}/api/#{path}#{query_string}"
-    end
-
-    def auth_url(path, parameters = {})
-      query_string = parameters.inject('') { |result, (k, v)| result + "?#{k}=#{v}" } unless parameters.blank?
-      "#{host}/auth/#{path}#{query_string}"
-    end
-
-    def exchange_token_url(ticket, session_id)
-      "#{host}/auth/token?st=#{ticket}&sessionId=#{session_id}"
-    end
-
-    def redirect_to_auth_center
-      auth_center_url = "#{host}/auth/login?redirect_url=#{CGI.escape(redirect_url)}"
+    def redirect_to_url(url)
       if respond_to?(:redirect_to)
-        redirect_to auth_center_url
+        redirect_to url
       elsif respond_to?(:redirect)
-        redirect auth_center_url
+        redirect url
       else
         raise UnknownRackApp
       end
@@ -142,7 +110,10 @@ module OneAuthentication
     end
 
     def resolve_not_authorized
-      return redirect_to_auth_center if redirect_url
+      if redirect_url
+        login_url = generate_url('auth/login', { redirect_url: CGI.escape(redirect_url) })
+        return redirect_to_url(login_url)
+      end
 
       message = 'Not Authorized'
       if respond_to?(:render)
