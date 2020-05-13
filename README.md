@@ -36,19 +36,19 @@ OneAuthentication.configure do |config|
 end
 ```
 
-用户认证
+使用示例
 ```ruby
 class BaseApi < Grape::API
   include OneAuthentication::Plugin
 
-  before { authenticate }  
+  before { authenticate! }  
    
   get 'profile' do
     @current_user 
   end
 
   namespace :users do
-    before { authorize('用户管理') }     
+    before { authorize!('用户管理') }     
 
     get do
       # to return all users
@@ -57,7 +57,16 @@ class BaseApi < Grape::API
 
 end
 ```
-当用户登陆失败或者没有所需权限时返回 status code 401
+
+Api:
+authenticate!
+  - 当用户未登陆时，已配置 redirect_url 的系统则跳转至 #{authentication_center_host}/auth/login，未配置的系统会返回 response { code: 401, message: Not Authenticated }
+  - 当用户已登陆时，可通过 @current_user 获取用户
+authenticate 
+  - 当用户未登陆时，方法会返回 nil
+  - 当用户已登陆时，可通过 @current_user 获取用户
+authorize!
+  - 当用户没有对应的权限时，会返回 response { code: 401, message: Not Authorized }
 
 可获取的用户属性
 ```
