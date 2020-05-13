@@ -27,11 +27,19 @@ module OneAuthentication
     AUTHENTICATION_KEY = 'Authorization'
 
     def authenticate
-      token = request.cookies[AUTHENTICATION_KEY] || request.headers[AUTHENTICATION_KEY]
-      session_id = params['sessionId'] || params['session_id']
-      if token.nil? && params['st'] && session_id
-        token = exchange_token(params['st'], session_id)
+      token = get_token_in_request
+      return nil unless token
+
+      set_token_in_resp(token)
+      begin
+        @current_user = get_user(token)
+      rescue NotAuthorized
+        nil
       end
+    end
+
+    def authenticate!
+      token = get_token_in_request
       return resolve_not_authorized unless token
 
       set_token_in_resp(token)
@@ -137,6 +145,13 @@ module OneAuthentication
       else
         raise UnknownRackApp
       end
+    end
+
+    def get_token_in_request
+      session_id = params['sessionId'] || params['session_id']
+      return exchange_token(params['st'], session_id) if params['st'] && session_id
+
+      request.cookies[AUTHENTICATION_KEY] || request.headers[AUTHENTICATION_KEY]
     end
   end
 
