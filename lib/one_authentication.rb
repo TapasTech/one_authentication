@@ -90,6 +90,11 @@ module OneAuthentication
       send_request(generate_url('auth/logout'), token)
     end
 
+    def get_token
+      session_id = params['sessionId'] || params['session_id']
+      exchange_token(params['st'], session_id)
+    end
+
     private
     def exchange_token(ticket, session_id)
       url = generate_url('auth/token', { st: ticket, session_id: session_id })

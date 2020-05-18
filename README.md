@@ -58,15 +58,17 @@ class BaseApi < Grape::API
 end
 ```
 
-Api:
+接口:
+```
 authenticate!
-  - 当用户未登陆时，已配置 redirect_url 的系统则跳转至 #{authentication_center_host}/auth/login，未配置的系统会返回 response { code: 401, message: Not Authenticated }
-  - 当用户已登陆时，可通过 @current_user 获取用户
+    - 当用户未登陆时，已配置 redirect_url 的系统则跳转至 #{authentication_center_host}/auth/login，未配置的系统会返回 response { code: 401, message: Not Authenticated }
+    - 当用户已登陆时，可通过 @current_user 获取用户
 authenticate 
-  - 当用户未登陆时，方法会返回 nil
-  - 当用户已登陆时，可通过 @current_user 获取用户
+    - 当用户未登陆时，方法会返回 nil
+    - 当用户已登陆时，可通过 @current_user 获取用户
 authorize!
-  - 当用户没有对应的权限时，会返回 response { code: 401, message: Not Authorized }
+    - 当用户没有对应的权限时，会返回 response { code: 401, message: Not Authorized }
+```
 
 可获取的用户属性
 ```
