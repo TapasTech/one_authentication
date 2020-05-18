@@ -54,7 +54,7 @@ module OneAuthentication
       resolve_not_authorized unless @current_user
 
       owned_privileges = @current_user.privileges.map { |h| h['name'] }
-      resolve_not_authorized if owned_privileges.exclude?(privilege_name)
+      resolve_no_permission if owned_privileges.exclude?(privilege_name)
     end
 
     def get_user(token)
@@ -122,22 +122,17 @@ module OneAuthentication
       Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https') {|http| http.request(req) }
     end
 
+    def resolve_no_permission
+      render_response(401, 'No Permission')
+    end
+
     def resolve_not_authorized
       if redirect_url
         login_url = generate_url('auth/login', { redirect_url: CGI.escape(redirect_url) })
         return redirect_to_url(login_url)
       end
 
-      message = 'Not Authorized'
-      if respond_to?(:render)
-        render message, :status => 401
-      elsif respond_to?(:halt)
-        halt message, :status => 401
-      elsif respond_to?(:error!)
-        error! message, :unauthorized
-      else
-        raise UnknownRackApp
-      end
+      render_response(401, 'Not Authenticated')
     end
 
     def set_token_in_resp(token)
@@ -157,6 +152,18 @@ module OneAuthentication
       return exchange_token(params['st'], session_id) if params['st'] && session_id
 
       request.cookies[AUTHENTICATION_KEY] || request.headers[AUTHENTICATION_KEY]
+    end
+
+    def render_response(code, message)
+      if respond_to?(:render)
+        render message, :status => code
+      elsif respond_to?(:halt)
+        halt message, :status => code
+      elsif respond_to?(:error!)
+        error! message, code
+      else
+        raise UnknownRackApp
+      end
     end
   end
 
