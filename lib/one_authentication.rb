@@ -50,7 +50,7 @@ module OneAuthentication
       end
     end
 
-    def authorize(privilege_name)
+    def authorize!(privilege_name)
       resolve_not_authorized unless @current_user
 
       owned_privileges = @current_user.privileges.map { |h| h['name'] }
@@ -123,7 +123,7 @@ module OneAuthentication
     end
 
     def resolve_no_permission
-      render_response(401, 'No Permission')
+      render_response(403, 'No Permission')
     end
 
     def resolve_not_authorized
