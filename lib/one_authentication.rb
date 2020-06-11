@@ -156,9 +156,9 @@ module OneAuthentication
 
     def render_response(code, message)
       if respond_to?(:render)
-        render message, :status => code
+        render json: message, status: code
       elsif respond_to?(:halt)
-        halt message, :status => code
+        halt message, status: code
       elsif respond_to?(:error!)
         error! message, code
       else
