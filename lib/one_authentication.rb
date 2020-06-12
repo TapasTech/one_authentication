@@ -43,11 +43,7 @@ module OneAuthentication
       return resolve_not_authorized unless token
 
       set_token_in_resp(token)
-      begin
-        @current_user = get_user(token)
-      rescue NotAuthorized
-        resolve_not_authorized
-      end
+      @current_user = get_user(token)
     end
 
     def authorize!(privilege_name)
@@ -60,7 +56,7 @@ module OneAuthentication
     def get_user(token)
       resp = send_request(generate_url('auth/profile', { app_key: app_key }), token)
 
-      raise NotAuthorized unless resp.code.start_with?('2')
+      return resolve_not_authorized unless resp.code.start_with?('2')
 
       data = JSON.parse(resp.body)['data'].slice('name', 'position', 'avatar', 'mobile', 'email', 'userId', 'privileges')
       data.transform_keys!{ |key| underscore(key) }
