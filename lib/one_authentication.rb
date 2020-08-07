@@ -43,7 +43,11 @@ module OneAuthentication
       return resolve_not_authorized unless token
 
       set_token_in_resp(token)
-      @current_user = get_user(token)
+      begin
+        @current_user = get_user(token)
+      rescue NotAuthorized
+        resolve_not_authorized
+      end
     end
 
     def authorize!(privilege_name)
